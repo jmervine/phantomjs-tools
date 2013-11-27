@@ -1,5 +1,8 @@
 #!/usr/bin/env phantomjs
 /***********************************************************
+ * Author: @mervinej
+ * Licence: MIT
+ * Date: 11/27/2013
  *
  *  Run with:
  *

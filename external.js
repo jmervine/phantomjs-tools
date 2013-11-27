@@ -1,14 +1,18 @@
 #!/usr/bin/env phantomjs
 /***********************************************************
+ * Author: @mervinej
+ * Licence: MIT
+ * Date: 11/27/2013
  *
  *  Run with:
  *
- *  $ phantomjs ./external.js ./urls.txt
+ *  $ phantomjs ./external.js ./urls.txt [./excluded.txt]
  *
  *  or
  *
  *  $ phantomjs ./external.js \
- *     "http://foo.com, http://foo.com/bar"
+ *     "http://foo.com, http://foo.com/bar" \
+ *     "exclude1.example.com, exclude2.example.com"
  *
  *  Note: As a bonus, I left the page timing as well from
  *  the example script I started this from.
@@ -24,8 +28,8 @@ var addresses = [];
 /***********************************************************
  * Add any domains you wish to exclude to this array.
  *
- * TODO: Support populating this array from an external
- * source.
+ * Domains added to this Array will be excluded in addition
+ * to an domains passed through the second argument.
  ***********************************************************/
 var local_domains = [
     // domains to be excluded, e.g.:
@@ -41,6 +45,11 @@ if (system.args.length === 1) {
     usage();
 }
 
+function trim(str) {
+    return str.replace(/^\s+/,'').replace(/\s+$/,'');
+}
+
+// parse urls
 if (fs.exists(system.args[1])) {
     fs.read(system.args[1])
         .split('\n')
@@ -51,8 +60,24 @@ if (fs.exists(system.args[1])) {
         });
 } else {
     system.args[1].split(',').forEach(function(item) {
-        addresses.push(item.replace(/^\s+/,'').replace(/\s+$/,''));
+        addresses.push(trim(item));
     });
+}
+
+if (system.args[2]) {
+    if (fs.exists(system.args[2])) {
+        fs.read(system.args[2])
+            .split('\n')
+            .forEach(function(line) {
+                if (line !== '') {
+                    local_domains.push(line);
+                }
+            });
+    } else {
+        system.args[2].split(',').forEach(function(item) {
+            local_domains.push(trim(item));
+        });
+    }
 }
 
 if (!addresses || addresses.length === 0) {
