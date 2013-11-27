@@ -12,7 +12,7 @@ Include a summarized count of external domain requests.
 > Additionally, the domain of the request is automatically
 > excluded.
 
-See: [urls.txt.example](urls.txt.example)
+See: [urls.txt.example](urls.txt.example), [excluded.txt.example](excluded.txt.example)
 
 ```
 Usage: external.js <some URL>|<some file>
