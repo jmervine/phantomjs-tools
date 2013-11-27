@@ -1,18 +1,14 @@
 phantomjs-tools
 ===============
 
-### external.js
+### [external.js](external/external.js)
 
 Include a summarized count of external domain requests.
 
-> Note:
->
-> Update `local_domains` Array in the script to exclude domains.
->
-> Additionally, the domain of the request is automatically
-> excluded.
+> ### Note:
+> The domain of the request is automatically excluded.
 
-See: [urls.txt.example](urls.txt.example), [excluded.txt.example](excluded.txt.example)
+See: [urls.txt.example](external/urls.txt.example), [excluded.txt.example](external/excluded.txt.example)
 
 ```
 Usage: external.js <URL(s)>|<URL file> [<EXCLUDE(s)>|EXCLUDE file>]
@@ -38,11 +34,11 @@ External Requests:
  - collector.githubapp.com [2]
 ```
 
-### timing.js
+### [timing.js](timing/timing.js)
 
 Page load timings.
 
-See: [urls.txt.example](urls.txt.example)
+See: [urls.txt.example](timing/urls.txt.example)
 
 ```
 Usage: timing.js <URL(s)>|<URL file>
@@ -57,3 +53,4 @@ Regarding: http://www.google.com
 Regarding: http://www.github.com
 > took 2985 msec
 ```
+
