@@ -37,7 +37,7 @@ var local_domains = [
 ];
 
 function usage() {
-    console.log('Usage: external.js <some URL>|<some file>');
+    console.log('Usage: external.js <URL(s)>|<URL(s) file> [<EXCLUDE(s)|EXCLUDE(s) file>]');
     phantom.exit();
 }
 

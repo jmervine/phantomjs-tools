@@ -32,7 +32,7 @@ var addresses = [];
  ***********************************************************/
 
 function usage() {
-    console.log('Usage: timing.js <some URL>|<some file>');
+    console.log('Usage: timing.js <URL(s)>|<URL(s) file>');
     phantom.exit();
 }
 

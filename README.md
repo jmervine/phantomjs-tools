@@ -15,7 +15,7 @@ Include a summarized count of external domain requests.
 See: [urls.txt.example](urls.txt.example), [excluded.txt.example](excluded.txt.example)
 
 ```
-Usage: external.js <some URL>|<some file>
+Usage: external.js <URL(s)>|<URL file> [<EXCLUDE(s)>|EXCLUDE file>]
 ```
 
 Sample output:
@@ -45,7 +45,7 @@ Page load timings.
 See: [urls.txt.example](urls.txt.example)
 
 ```
-Usage: external.js <some URL>|<some file>
+Usage: timing.js <URL(s)>|<URL file>
 ```
 
 Sample output:
