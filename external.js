@@ -73,21 +73,45 @@ function domain(url) {
     return url.match("^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)")[1];
 }
 
-function flattenAndTally(urls) {
+function flattenAndTallySuccesses(reqs) {
     var ret = [];
-    urls.forEach(function(url) {
-        url = domain(url);
-        var exists = false;
-        var index = 0;
-        ret.forEach(function(u) {
-            if (u.url === url) {
-                exists = true;
-                ret[index].count++;
+    reqs.forEach(function(req) {
+        if (req.responded) {
+            url = domain(req.url);
+            var exists = false;
+            var index = 0;
+            ret.forEach(function(u) {
+                if (u.url === url) {
+                    exists = true;
+                    ret[index].count++;
+                }
+                index++;
+            });
+            if (!exists) {
+                ret.push({ url: url, count: 1 });
             }
-            index++;
-        });
-        if (!exists) {
-            ret.push({ url: url, count: 1 });
+        }
+    });
+    return ret;
+}
+
+function flattenAndTallyFailures(reqs) {
+    var ret = [];
+    reqs.forEach(function(req) {
+        if (!req.responded) {
+            url = domain(req.url);
+            var exists = false;
+            var index = 0;
+            ret.forEach(function(u) {
+                if (u.url === url) {
+                    exists = true;
+                    ret[index].count++;
+                }
+                index++;
+            });
+            if (!exists) {
+                ret.push({ url: url, count: 1 });
+            }
         }
     });
     return ret;
@@ -98,7 +122,7 @@ addresses.forEach(function(address) {
 
     var t = Date.now();
     var page = webpage.create();
-    var urls = [];
+    var requests = [];
     page.open(address, function (status) {
         if (status !== 'success') {
             console.log('FAIL to load the address');
@@ -112,7 +136,7 @@ addresses.forEach(function(address) {
         console.log(' ');
         console.log('External Requests:');
 
-        var results = flattenAndTally(urls)
+        var successes = flattenAndTallySuccesses(requests)
                         .sort(function(a,b) {
                             if (a.count < b.count) {
                                 return 1;
@@ -123,10 +147,29 @@ addresses.forEach(function(address) {
                             return 0;
                         });
 
-        results.forEach(function(url) {
+        successes.forEach(function(url) {
             console.log(' - ' + url.url + ' [' + url.count + ']');
         });
         console.log(' ');
+
+        var failures = flattenAndTallyFailures(requests)
+                        .sort(function(a,b) {
+                            if (a.count < b.count) {
+                                return 1;
+                            }
+                            if (a.count > b.count) {
+                                return -1;
+                            }
+                            return 0;
+                        });
+
+        if (failures.length > 0) {
+            console.log('Failed Requests:');
+            failures.forEach(function(url) {
+                console.log(' - ' + url.url + ' [' + url.count + ']');
+            });
+            console.log(' ');
+        }
 
         finished++;
 
@@ -135,9 +178,23 @@ addresses.forEach(function(address) {
         }
         return;
     });
+
+    page.onResourceRequested = function(data, request) {
+        if (!isLocal(data.url)) {
+            requests.push({ url: data.url, id: data.id });
+        }
+    };
+
     page.onResourceReceived = function(response) {
         if (!isLocal(response.url)) {
-            urls.push(response.url);
+            var index = 0;
+            requests.forEach(function(request) {
+                if (request.url === response.url && request.id === response.id) {
+                    requests[index].responded = true;
+                }
+                index++;
+            });
         }
     };
 });
+
