@@ -94,13 +94,13 @@ addresses.forEach(function(address) {
             return document.body.innerHTML;
         });
 
-        console.log('Matches:');
+        console.log('Search Results:');
         strings.forEach(function(str) {
             var count = 0;
             try {
                 count = Object.keys(body.match(new RegExp(str, 'g'))).length;
             } catch(e) {}
-            console.log('> ' + str + ': ' + count);
+            console.log('- ' + str + ': ' + count);
         });
 
         console.log(' ');

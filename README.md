@@ -54,3 +54,31 @@ Regarding: http://www.github.com
 > took 2985 msec
 ```
 
+### [grep.js](grep/grep.js)
+
+Searching for strings in a page body.
+
+See: [urls.txt.example](grep/urls.txt.example), [strings.txt.example](grep/strings.txt.example)
+
+```
+Usage: grep.js <URL(s)>|<URL file> <STRING(s)>|<STRING(s) file>
+```
+
+Sample output:
+
+```
+Regarding: http://www.google.com
+> took 1108 msec
+
+Search Results:
+- Some string to be found.: 0
+- Another string to be found.: 0
+
+Regarding: http://www.github.com
+> took 2985 msec
+
+Search Results:
+- Some string to be found.: 0
+- Another string to be found.: 0
+```
+
