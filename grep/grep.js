@@ -14,6 +14,8 @@
  *     "http://foo.com, http://foo.com/bar" \
  *     "string1, string2"
  *
+ *  Warning: all search are case insensitive.
+ *
  *  Note: As a bonus, I left the page timing as well from
  *  the example script I started this from.
  *
@@ -94,13 +96,16 @@ addresses.forEach(function(address) {
             return document.body.innerHTML;
         });
 
-        console.log('Search Results:');
+        console.log('Found:');
         strings.forEach(function(str) {
             var count = 0;
             try {
-                count = Object.keys(body.match(new RegExp(str, 'g'))).length;
+                count = Object.keys(body.match(new RegExp(str, 'ig'))).length;
             } catch(e) {}
-            console.log('- ' + str + ': ' + count);
+
+            if (count > 0) {
+                console.log('- ' + str + ': ' + count);
+            }
         });
 
         console.log(' ');
