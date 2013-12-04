@@ -13,6 +13,9 @@
  *  $ phantomjs ./ready.js \
  *     "http://foo.com, http://foo.com/bar"
  *
+ *  '--json' returns JSON output for parsing with Phapper
+ *  (http://github.com/jmervine/phapper).
+ *
  ***********************************************************/
 
 var webpage   = require('webpage');
@@ -22,7 +25,7 @@ var finished  = 0;
 var addresses = [];
 
 function usage() {
-    console.log('Usage: ready.js <URL(s)>|<URL(s) file>');
+    console.log('Usage: ready.js <URL(s)>|<URL(s) file> [--json]');
     phantom.exit();
 }
 
@@ -34,9 +37,21 @@ function trim(str) {
     return str.replace(/^\s+/,'').replace(/\s+$/,'');
 }
 
+// remove unimportant args
+var jsonIndex = system.args.indexOf('--json');
+var json = (jsonIndex !== -1);
+var urls;
+var i = 0;
+system.args.forEach(function(arg) {
+    if (i !== 0 && i !== jsonIndex) {
+        urls = arg;
+    }
+    i++;
+});
+
 // parse urls
-if (fs.exists(system.args[1])) {
-    fs.read(system.args[1])
+if (fs.exists(urls)) {
+    fs.read(urls)
         .split('\n')
         .forEach(function(line) {
             if (line !== '') {
@@ -44,7 +59,7 @@ if (fs.exists(system.args[1])) {
             }
         });
 } else {
-    system.args[1].split(',').forEach(function(item) {
+    urls.split(',').forEach(function(item) {
         addresses.push(trim(item));
     });
 }
@@ -52,6 +67,8 @@ if (fs.exists(system.args[1])) {
 if (!addresses || addresses.length === 0) {
     usage();
 }
+
+var results = []; // if --json
 
 addresses.forEach(function(address) {
     var t = Date.now();
@@ -61,19 +78,31 @@ addresses.forEach(function(address) {
 
     page.open(address, function (status) {
         if (status !== 'success') {
-            console.log('FAIL to load the address');
-            finished++;
-            return;
-        }
+            console.log('FAIL to load the address\n=> '+address);
+        } else {
 
-        console.log('Regarding: ' + address);
-        console.log('> Document ready after ' + (ready-t) + ' msec');
-        console.log(' ');
+            if (json) {
+                results.push({
+                    address: address,
+                    ready: (ready-t),
+                    complete: (Date.now()-t)
+                });
+            } else {
+                console.log('Regarding: ' + address);
+                console.log('> ready after:    ' + (ready-t)      + ' msec');
+                console.log('> complete after: ' + (Date.now()-t) + ' msec');
+                console.log(' ');
+            }
+        }
         finished++;
 
         if (finished === addresses.length) {
+            if (json) {
+                console.log(JSON.stringify(results, null, 2));
+            }
             phantom.exit();
         }
+
         return;
     });
 

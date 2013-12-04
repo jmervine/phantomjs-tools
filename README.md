@@ -88,7 +88,7 @@ Report `$(document).ready` time.
 See: [urls.txt.example](grep/urls.txt.example)
 
 ```
-Usage: grep.js <URL(s)>|<URL file>
+Usage: grep.js <URL(s)>|<URL file> [--json]
 ```
 
 Sample output:
