@@ -81,4 +81,23 @@ Search Results:
 - Some string to be found.: 0
 - Another string to be found.: 0
 ```
+### [ready.js](ready/ready.js)
+
+Report `$(document).ready` time.
+
+See: [urls.txt.example](grep/urls.txt.example)
+
+```
+Usage: grep.js <URL(s)>|<URL file>
+```
+
+Sample output:
+
+```
+Regarding: http://www.google.com
+> Document ready after 812 msec
+
+Regarding: http://www.github.com
+> Document ready after 965 msec
+```
 
