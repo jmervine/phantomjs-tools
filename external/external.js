@@ -14,6 +14,9 @@
  *     "http://foo.com, http://foo.com/bar" \
  *     "exclude1.example.com, exclude2.example.com"
  *
+ *  '--json' returns JSON output for parsing with Phapper
+ *  (http://github.com/jmervine/phapper).
+ *
  *  Note: As a bonus, I left the page timing as well from
  *  the example script I started this from.
  *
@@ -37,7 +40,7 @@ var local_domains = [
 ];
 
 function usage() {
-    console.log('Usage: external.js <URL(s)>|<URL(s) file> [<EXCLUDE(s)|EXCLUDE(s) file>]');
+    console.log('Usage: external.js <URL(s)>|<URL(s) file> [<EXCLUDE(s)|EXCLUDE(s) file>] [--json]');
     phantom.exit();
 }
 
@@ -49,9 +52,21 @@ function trim(str) {
     return str.replace(/^\s+/,'').replace(/\s+$/,'');
 }
 
+// remove unimportant args
+var jsonIndex = system.args.indexOf('--json');
+var json = (jsonIndex !== -1);
+var args = [];
+var i = 0;
+system.args.forEach(function(arg) {
+    if (i !== 0 && i !== jsonIndex) {
+        args.push(arg);
+    }
+    i++;
+});
+
 // parse urls
-if (fs.exists(system.args[1])) {
-    fs.read(system.args[1])
+if (fs.exists(args[0])) {
+    fs.read(args[0])
         .split('\n')
         .forEach(function(line) {
             if (line !== '') {
@@ -59,14 +74,14 @@ if (fs.exists(system.args[1])) {
             }
         });
 } else {
-    system.args[1].split(',').forEach(function(item) {
+    args[0].split(',').forEach(function(item) {
         addresses.push(trim(item));
     });
 }
 
-if (system.args[2]) {
-    if (fs.exists(system.args[2])) {
-        fs.read(system.args[2])
+if (args[1]) {
+    if (fs.exists(args[1])) {
+        fs.read(args[1])
             .split('\n')
             .forEach(function(line) {
                 if (line !== '') {
@@ -74,7 +89,7 @@ if (system.args[2]) {
                 }
             });
     } else {
-        system.args[2].split(',').forEach(function(item) {
+        args[1].split(',').forEach(function(item) {
             local_domains.push(trim(item));
         });
     }
@@ -142,66 +157,88 @@ function flattenAndTallyFailures(reqs) {
     return ret;
 }
 
+var results = [];
+
 addresses.forEach(function(address) {
     local_domains.push(domain(address));
 
     var t = Date.now();
     var page = webpage.create();
     var requests = [];
+
     page.open(address, function (status) {
         if (status !== 'success') {
             console.log('FAIL to load the address');
-            finished++;
-            return;
+        } else {
+            t = Date.now() - t;
+
+            var successes = flattenAndTallySuccesses(requests)
+                            .sort(function(a,b) {
+                                if (a.count < b.count) {
+                                    return 1;
+                                }
+                                if (a.count > b.count) {
+                                    return -1;
+                                }
+                                return 0;
+                            });
+
+            var failures = flattenAndTallyFailures(requests)
+                            .sort(function(a,b) {
+                                if (a.count < b.count) {
+                                    return 1;
+                                }
+                                if (a.count > b.count) {
+                                    return -1;
+                                }
+                                return 0;
+                            });
+
+            if (json) {
+                var reqs = [];
+
+                successes.forEach(function(item) {
+                    item.successful = true;
+                    reqs.push(item);
+                });
+
+                failures.forEach(function(item) {
+                    item.successful = false;
+                    reqs.push(item);
+                });
+
+                results.push({
+                    address: address,
+                    complete: t,
+                    requests: reqs
+                });
+            } else {
+                console.log('Regarding: ' + address);
+                console.log('> took ' + t + ' msec');
+                console.log(' ');
+                console.log('External Requests:');
+
+                successes.forEach(function(url) {
+                    console.log(' - ' + url.url + ' [' + url.count + ']');
+                });
+                console.log(' ');
+                if (failures.length > 0) {
+                    console.log('Failed Requests:');
+                    failures.forEach(function(url) {
+                        console.log(' - ' + url.url + ' [' + url.count + ']');
+                    });
+                    console.log(' ');
+                }
+            }
         }
-        t = Date.now() - t;
-
-        console.log('Regarding: ' + address);
-        console.log('> took ' + t + ' msec');
-        console.log(' ');
-        console.log('External Requests:');
-
-        var successes = flattenAndTallySuccesses(requests)
-                        .sort(function(a,b) {
-                            if (a.count < b.count) {
-                                return 1;
-                            }
-                            if (a.count > b.count) {
-                                return -1;
-                            }
-                            return 0;
-                        });
-
-        successes.forEach(function(url) {
-            console.log(' - ' + url.url + ' [' + url.count + ']');
-        });
-        console.log(' ');
-
-        var failures = flattenAndTallyFailures(requests)
-                        .sort(function(a,b) {
-                            if (a.count < b.count) {
-                                return 1;
-                            }
-                            if (a.count > b.count) {
-                                return -1;
-                            }
-                            return 0;
-                        });
-
-        if (failures.length > 0) {
-            console.log('Failed Requests:');
-            failures.forEach(function(url) {
-                console.log(' - ' + url.url + ' [' + url.count + ']');
-            });
-            console.log(' ');
-        }
-
         finished++;
 
         if (finished === addresses.length) {
+            if (json) {
+                console.log(JSON.stringify(results, null, 2));
+            }
             phantom.exit();
         }
-        return;
     });
 
     page.onResourceRequested = function(data, request) {

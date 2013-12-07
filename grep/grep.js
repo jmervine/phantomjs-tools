@@ -14,6 +14,9 @@
  *     "http://foo.com, http://foo.com/bar" \
  *     "string1, string2"
  *
+ *  '--json' returns JSON output for parsing with Phapper
+ *  (http://github.com/jmervine/phapper).
+ *
  *  Warning: all search are case insensitive.
  *
  *  Note: As a bonus, I left the page timing as well from
@@ -29,21 +32,33 @@ var addresses = [];
 var strings   = [];
 
 function usage() {
-    console.log('Usage: grep.js <URL(s)>|<URL(s) file> <STRING(s)|STRING(s) file>]');
+    console.log('Usage: grep.js <URL(s)>|<URL(s) file> <STRING(s)|STRING(s) file>] [--json]');
     phantom.exit();
-}
-
-if (system.args.length === 1) {
-    usage();
 }
 
 function trim(str) {
     return str.replace(/^\s+/,'').replace(/\s+$/,'');
 }
 
+// remove unimportant args
+var jsonIndex = system.args.indexOf('--json');
+var json = (jsonIndex !== -1);
+var args = [];
+var i = 0;
+system.args.forEach(function(arg) {
+    if (i !== 0 && i !== jsonIndex) {
+        args.push(arg);
+    }
+    i++;
+});
+
+if (args.length !== 2) {
+    usage();
+}
+
 // parse urls
-if (fs.exists(system.args[1])) {
-    fs.read(system.args[1])
+if (fs.exists(args[0])) {
+    fs.read(args[0])
         .split('\n')
         .forEach(function(line) {
             if (line !== '') {
@@ -51,14 +66,14 @@ if (fs.exists(system.args[1])) {
             }
         });
 } else {
-    system.args[1].split(',').forEach(function(item) {
+    args[0].split(',').forEach(function(item) {
         addresses.push(trim(item));
     });
 }
 
-if (system.args[2]) {
-    if (fs.exists(system.args[2])) {
-        fs.read(system.args[2])
+if (args[1]) {
+    if (fs.exists(args[1])) {
+        fs.read(args[1])
             .split('\n')
             .forEach(function(line) {
                 if (line !== '') {
@@ -66,7 +81,7 @@ if (system.args[2]) {
                 }
             });
     } else {
-        system.args[2].split(',').forEach(function(item) {
+        args[1].split(',').forEach(function(item) {
             strings.push(trim(item));
         });
     }
@@ -76,45 +91,63 @@ if (!addresses || addresses.length === 0) {
     usage();
 }
 
+var results = []; // if --json
+
 addresses.forEach(function(address) {
     var t = Date.now();
     var page = webpage.create();
-    var requests = [];
+
     page.open(address, function (status) {
         if (status !== 'success') {
             console.log('FAIL to load the address');
-            finished++;
-            return;
-        }
-        t = Date.now() - t;
+        } else {
 
-        console.log('Regarding: ' + address);
-        console.log('> took ' + t + ' msec');
-        console.log(' ');
+            t = Date.now() - t;
+            var body = page.evaluate(function() {
+                return document.body.innerHTML;
+            });
 
-        var body = page.evaluate(function() {
-            return document.body.innerHTML;
-        });
+            var found = [];
+            strings.forEach(function(str) {
+                var count = 0;
+                try {
+                    count = Object.keys(body.match(new RegExp(str, 'ig'))).length;
+                } catch(e) {}
 
-        console.log('Found:');
-        strings.forEach(function(str) {
-            var count = 0;
-            try {
-                count = Object.keys(body.match(new RegExp(str, 'ig'))).length;
-            } catch(e) {}
+                if (count > 0) {
+                    found.push({ string: str, count: count });
+                }
+            });
 
-            if (count > 0) {
-                console.log('- ' + str + ': ' + count);
+            if (json) {
+                results.push({
+                    address: address,
+                    complete: t,
+                    matches: found
+                });
+            } else {
+
+                console.log('Regarding: ' + address);
+                console.log('> took ' + t + ' msec');
+                console.log(' ');
+
+                console.log('Found:');
+
+                found.forEach(function(item) {
+                    console.log('- ' + item.string + ': ' + item.count);
+                });
+
+                console.log(' ');
             }
-        });
 
-        console.log(' ');
-        finished++;
-
+            finished++;
+        }
         if (finished === addresses.length) {
+            if (json) {
+                console.log(JSON.stringify(results, null, 2));
+            }
             phantom.exit();
         }
-        return;
     });
 
 });

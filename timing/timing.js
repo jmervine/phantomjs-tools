@@ -13,6 +13,9 @@
  *  $ phantomjs ./timing.js \
  *     "http://foo.com, http://foo.com/bar"
  *
+ *  '--json' returns JSON output for parsing with Phapper
+ *  (http://github.com/jmervine/phapper).
+ *
  *  Note: As a bonus, I left the page timing as well from
  *  the example script I started this from.
  *
@@ -32,13 +35,29 @@ var addresses = [];
  ***********************************************************/
 
 function usage() {
-    console.log('Usage: timing.js <URL(s)>|<URL(s) file>');
+    console.log('Usage: timing.js <URL(s)>|<URL(s) file> [--json]');
     phantom.exit();
 }
 
 if (system.args.length === 1) {
     usage();
 }
+
+function trim(str) {
+    return str.replace(/^\s+/,'').replace(/\s+$/,'');
+}
+
+// remove unimportant args
+var jsonIndex = system.args.indexOf('--json');
+var json = (jsonIndex !== -1);
+var urls;
+var i = 0;
+system.args.forEach(function(arg) {
+    if (i !== 0 && i !== jsonIndex) {
+        urls = arg;
+    }
+    i++;
+});
 
 if (fs.exists(system.args[1])) {
     fs.read(system.args[1])
@@ -50,13 +69,15 @@ if (fs.exists(system.args[1])) {
         });
 } else {
     system.args[1].split(',').forEach(function(item) {
-        addresses.push(item.replace(/^\s+/,'').replace(/\s+$/,''));
+        addresses.push(trim(item));
     });
 }
 
 if (!addresses || addresses.length === 0) {
     usage();
 }
+
+var results = []; // if --json
 
 addresses.forEach(function(address) {
     var t = Date.now();
@@ -68,13 +89,22 @@ addresses.forEach(function(address) {
         } else {
             t = Date.now() - t;
 
-            console.log('Regarding: ' + address);
-            console.log('> took ' + t + ' msec');
-            console.log(' ');
-
+            if (json) {
+                results.push({
+                    address: address,
+                    complete: t
+                });
+            } else {
+                console.log('Regarding: ' + address);
+                console.log('> took ' + t + ' msec');
+                console.log(' ');
+            }
             finished++;
         }
         if (finished === addresses.length) {
+            if (json) {
+                console.log(JSON.stringify(results, null, 2));
+            }
             phantom.exit();
         }
     });
