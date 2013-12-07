@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "phapper": "~0.1.7",
+    "async": "~0.2.9",
+    "commander": "~2.1.0"
+  }
+}
