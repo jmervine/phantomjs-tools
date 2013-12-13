@@ -1,4 +1,10 @@
 {
+  "name": "phantomjs-tools",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:jmervine/phantomjs-tools.git"
+  },
   "dependencies": {
     "phapper": "~0.1.7",
     "async": "~0.2.9",
