@@ -1,7 +1,7 @@
 phantomjs-tools
 ===============
 
-This repo contains rough examples of what can be done with PhantomJS and Node.js together to gather metrics from a web page.
+This repo contains rough examples of what can be done with [PhantomJS](http://phantomjs.org/) and Node.js together to gather metrics from a web page.
 
 ## Node.js Script Runner
 
