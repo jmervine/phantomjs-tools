@@ -63,6 +63,7 @@ var jsonIndex = system.args.indexOf('--json');
 var json = (jsonIndex !== -1);
 var args = [];
 var i = 0;
+
 system.args.forEach(function(arg) {
     if (i !== 0 && i !== jsonIndex) {
         args.push(arg);
@@ -70,36 +71,31 @@ system.args.forEach(function(arg) {
     i++;
 });
 
-// parse urls
-if (fs.exists(args[0])) {
-    fs.read(args[0])
-        .split('\n')
-        .forEach(function(line) {
-            if (line !== '') {
-                addresses.push(line);
-            }
-        });
-} else {
-    args[0].split(',').forEach(function(item) {
-        addresses.push(trim(item));
-    });
-}
+function parsePaths(str) {
+    var result = [];
+    if (!str) return result;
 
-if (args[1]) {
-    if (fs.exists(args[1])) {
-        fs.read(args[1])
+    if (fs.exists(str)) {
+        fs.read(str)
             .split('\n')
             .forEach(function(line) {
                 if (line !== '') {
-                    local_domains.push(line);
+                    result.push(line);
                 }
             });
     } else {
-        args[1].split(',').forEach(function(item) {
-            local_domains.push(trim(item));
+        str.split(',').forEach(function(item) {
+            result.push(trim(item));
         });
     }
+    return result;
 }
+
+// parse urls
+addresses = addresses.concat(parsePaths(args[0]));
+
+// parse excludes
+local_domains = local_domains.concat(parsePaths(args[1]));
 
 if (!addresses || addresses.length === 0) {
     usage();
@@ -159,7 +155,7 @@ function flattenAndTallyFailures(reqs) {
                 index++;
             });
             if (!exists) {
-                ret.push({ url: url, count: 1 });
+                ret.push({ referer: domain(req.referer), url: url, count: 1 });
             }
         }
     });
@@ -228,13 +224,13 @@ addresses.forEach(function(address) {
                 console.log('External Requests:');
 
                 successes.forEach(function(url) {
-                    console.log(' - ' + url.url + ' [' + url.count + '] (referer: ' + url.referer + ')');
+                    console.log('* ' + url.referer + '\n  -> ' + url.url + ' [' + url.count + ']');
                 });
                 console.log(' ');
                 if (failures.length > 0) {
                     console.log('Failed Requests:');
                     failures.forEach(function(url) {
-                        console.log(' - ' + url.url + ' [' + url.count + '] (referer: ' + url.referer + ')');
+                        console.log('* ' + url.referer + '\n  -> ' + url.url + ' [' + url.count + ']');
                     });
                     console.log(' ');
                 }
@@ -244,7 +240,7 @@ addresses.forEach(function(address) {
 
         if (finished === addresses.length) {
             if (json) {
-                console.log(JSON.stringify(results, null, 2));
+                console.dir(results);
             }
             phantom.exit();
         }
@@ -273,4 +269,8 @@ addresses.forEach(function(address) {
         }
     };
 });
+
+console.dir = function dir(obj) {
+    console.log(JSON.stringify(obj, null, 2));
+}
 

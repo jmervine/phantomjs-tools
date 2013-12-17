@@ -64,36 +64,32 @@ system.args.forEach(function(arg) {
     i++;
 });
 
-// parse urls
-if (fs.exists(args[0])) {
-    fs.read(args[0])
-        .split('\n')
-        .forEach(function(line) {
-            if (line !== '') {
-                addresses.push(line);
-            }
-        });
-} else {
-    args[0].split(',').forEach(function(item) {
-        addresses.push(trim(item));
-    });
-}
+function parsePaths(str) {
+    var result = [];
+    if (!str) return result;
 
-if (args[1]) {
-    if (fs.exists(args[1])) {
-        fs.read(args[1])
+    if (fs.exists(str)) {
+        fs.read(str)
             .split('\n')
             .forEach(function(line) {
                 if (line !== '') {
-                    local_domains.push(line);
+                    result.push(line);
                 }
             });
     } else {
-        args[1].split(',').forEach(function(item) {
-            local_domains.push(trim(item));
+        str.split(',').forEach(function(item) {
+            result.push(trim(item));
         });
     }
+    return result;
 }
+
+// parse urls
+addresses = addresses.concat(parsePaths(args[0]));
+
+// parse excludes
+var excludes = parsePaths(args[1]);
+local_domains = local_domains.concat(parsePaths(args[1]));
 
 if (!addresses || addresses.length === 0) {
     usage();
@@ -160,7 +156,7 @@ function flattenAndTallyFailures(reqs) {
 var results = [];
 
 addresses.forEach(function(address) {
-    local_domains.push(domain(address));
+    local_domains.push(address);
 
     var t = Date.now();
     var page = webpage.create();
@@ -235,7 +231,7 @@ addresses.forEach(function(address) {
 
         if (finished === addresses.length) {
             if (json) {
-                console.log(JSON.stringify(results, null, 2));
+                console.dir(results);
             }
             phantom.exit();
         }
@@ -259,4 +255,8 @@ addresses.forEach(function(address) {
         }
     };
 });
+
+console.dir = function dir(obj) {
+    console.log(JSON.stringify(obj, null, 2));
+}
 
