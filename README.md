@@ -45,6 +45,8 @@ npm install
 ```
 ## PhantomJS Scripts
 
+To use the PhantomJS scripts directly, you must first install PhantomJS manually, see: [http://phantomjs.org/download.html](http://phantomjs.org/download.html).
+
 ### [external.js](external/external.js)
 
 Include a summarized count of external domain requests.
