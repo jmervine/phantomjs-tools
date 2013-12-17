@@ -6,13 +6,15 @@
  *
  *  Run with:
  *
- *  $ phantomjs ./external.js ./urls.txt [./excluded.txt]
+ *  $ phantomjs ./external2.js ./urls.txt [./excluded.txt]
  *
  *  or
  *
- *  $ phantomjs ./external.js \
+ *  $ phantomjs ./external2.js \
  *     "http://foo.com, http://foo.com/bar" \
  *     "exclude1.example.com, exclude2.example.com"
+ *
+ *  External 2 adds referer support.
  *
  *  '--json' returns JSON output for parsing with Phapper
  *  (http://github.com/jmervine/phapper).
@@ -43,7 +45,7 @@ var local_domains = [
 ];
 
 function usage() {
-    console.log('Usage: external.js <URL(s)>|<URL(s) file> [<EXCLUDE(s)|EXCLUDE(s) file>] [--json]');
+    console.log('Usage: external2.js <URL(s)>|<URL(s) file> [<EXCLUDE(s)|EXCLUDE(s) file>] [--json] [--full]');
     phantom.exit();
 }
 
@@ -178,8 +180,6 @@ addresses.forEach(function(address) {
             console.log('FAIL to load the address');
         } else {
             t = Date.now() - t;
-
-            //console.log(JSON.stringify(requests, null, 2));
 
             var successes = flattenAndTallySuccesses(requests)
                             .sort(function(a,b) {
