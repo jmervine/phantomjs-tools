@@ -17,6 +17,9 @@
  *  '--json' returns JSON output for parsing with Phapper
  *  (http://github.com/jmervine/phapper).
  *
+ *  '--full' returns full request/response url and referer
+ *  as oppose to flattening them to just the domain.
+ *
  *  Note: As a bonus, I left the page timing as well from
  *  the example script I started this from.
  *
@@ -53,6 +56,7 @@ function trim(str) {
 }
 
 // remove unimportant args
+var fullDomain = (system.args.indexOf('--full') !== -1);
 var jsonIndex = system.args.indexOf('--json');
 var json = (jsonIndex !== -1);
 var args = [];
@@ -110,6 +114,9 @@ function isLocal(path) {
 }
 
 function domain(url) {
+    if (fullDomain) {
+        return url;
+    }
     return url.match("^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)")[1];
 }
 
@@ -128,7 +135,7 @@ function flattenAndTallySuccesses(reqs) {
                 index++;
             });
             if (!exists) {
-                ret.push({ url: url, count: 1 });
+                ret.push({ referer: domain(req.referer), url: url, count: 1 });
             }
         }
     });
@@ -139,7 +146,7 @@ function flattenAndTallyFailures(reqs) {
     var ret = [];
     reqs.forEach(function(req) {
         if (!req.responded) {
-            url = domain(req.url);
+            url = req.url;
             var exists = false;
             var index = 0;
             ret.forEach(function(u) {
@@ -171,6 +178,8 @@ addresses.forEach(function(address) {
             console.log('FAIL to load the address');
         } else {
             t = Date.now() - t;
+
+            //console.log(JSON.stringify(requests, null, 2));
 
             var successes = flattenAndTallySuccesses(requests)
                             .sort(function(a,b) {
@@ -219,13 +228,13 @@ addresses.forEach(function(address) {
                 console.log('External Requests:');
 
                 successes.forEach(function(url) {
-                    console.log(' - ' + url.url + ' [' + url.count + ']');
+                    console.log(' - ' + url.url + ' [' + url.count + '] (referer: ' + url.referer + ')');
                 });
                 console.log(' ');
                 if (failures.length > 0) {
                     console.log('Failed Requests:');
                     failures.forEach(function(url) {
-                        console.log(' - ' + url.url + ' [' + url.count + ']');
+                        console.log(' - ' + url.url + ' [' + url.count + '] (referer: ' + url.referer + ')');
                     });
                     console.log(' ');
                 }
@@ -243,7 +252,12 @@ addresses.forEach(function(address) {
 
     page.onResourceRequested = function(data, request) {
         if (!isLocal(data.url)) {
-            requests.push({ url: data.url, id: data.id });
+            var referer = data.headers.filter(function(header) {
+                if (header.name === "Referer") {
+                    return header;
+                }
+            })[0].value;
+            requests.push({ referer: referer, url: data.url, id: data.id });
         }
     };
 
