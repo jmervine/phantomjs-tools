@@ -88,7 +88,6 @@ function parsePaths(str) {
 addresses = addresses.concat(parsePaths(args[0]));
 
 // parse excludes
-var excludes = parsePaths(args[1]);
 local_domains = local_domains.concat(parsePaths(args[1]));
 
 if (!addresses || addresses.length === 0) {

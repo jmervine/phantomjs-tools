@@ -60,6 +60,33 @@ See: [urls.txt.example](external/urls.txt.example), [excluded.txt.example](exter
 Usage: external.js <URL(s)>|<URL file> [<EXCLUDE(s)>|EXCLUDE file>] [--json]
 ```
 
+Sample Output:
+
+```
+$ ./external/external.js https://github.com
+Regarding: https://github.com
+> took 2208 msec
+
+External Requests:
+ - github.global.ssl.fastly.net [8]
+ - github.com [6]
+ - ssl.google-analytics.com [2]
+ - collector-cdn.github.com [1]
+ - collector.githubapp.com [1]
+
+$ ./external/external2.js https://github.com
+Regarding: https://github.com
+> took 2080 msec
+
+External Requests:
+* github.com
+  -> github.global.ssl.fastly.net [8]
+* github.com
+  -> ssl.google-analytics.com [2]
+* github.com
+  -> collector.githubapp.com [1]
+```
+
 ### [timing.js](timing/timing.js)
 
 Page load timings.
@@ -70,14 +97,35 @@ See: [urls.txt.example](timing/urls.txt.example)
 Usage: timing.js <URL(s)>|<URL file> [--json]
 ```
 
+Sample Output:
+
+```
+$ ./timing/timing.js http://github.com
+Regarding: http://github.com
+> took 2216 msec
+```
+
 ### [grep.js](grep/grep.js)
 
 Searching for strings in a page body.
+
+> Warning: The passed string to viable RegExp needs work.
 
 See: [urls.txt.example](grep/urls.txt.example), [strings.txt.example](grep/strings.txt.example)
 
 ```
 Usage: grep.js <URL(s)>|<URL file> <STRING(s)>|<STRING(s) file> [--json]
+```
+
+Sample Output:
+
+```
+$ ./grep/grep.js https://github.com '.js'
+Regarding: https://github.com
+> took 2936 msec
+
+Found:
+- .js: 8
 ```
 
 ### [ready.js](ready/ready.js)
@@ -88,4 +136,13 @@ See: [urls.txt.example](grep/urls.txt.example)
 
 ```
 Usage: grep.js <URL(s)>|<URL file> [--json]
+```
+
+Sample Output:
+
+```
+$ ./ready/ready.js https://github.com
+Regarding: https://github.com
+> ready after:    765 msec
+> complete after: 2417 msec
 ```
