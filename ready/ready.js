@@ -18,11 +18,10 @@
  *
  ***********************************************************/
 
+var util      = require('../common/util');
 var webpage   = require('webpage');
 var system    = require('system');
-var fs        = require('fs');
 var finished  = 0;
-var addresses = [];
 
 function usage() {
     console.log('Usage: ready.js <URL(s)>|<URL(s) file> [--json]');
@@ -31,10 +30,6 @@ function usage() {
 
 if (system.args.length === 1) {
     usage();
-}
-
-function trim(str) {
-    return str.replace(/^\s+/,'').replace(/\s+$/,'');
 }
 
 // remove unimportant args
@@ -50,19 +45,7 @@ system.args.forEach(function(arg) {
 });
 
 // parse urls
-if (fs.exists(urls)) {
-    fs.read(urls)
-        .split('\n')
-        .forEach(function(line) {
-            if (line !== '') {
-                addresses.push(line);
-            }
-        });
-} else {
-    urls.split(',').forEach(function(item) {
-        addresses.push(trim(item));
-    });
-}
+var addresses = util.parsePaths(urls);
 
 if (!addresses || addresses.length === 0) {
     usage();
@@ -94,11 +77,13 @@ addresses.forEach(function(address) {
                 console.log(' ');
             }
         }
+
+        (page.close||page.release)();
         finished++;
 
         if (finished === addresses.length) {
             if (json) {
-                console.log(JSON.stringify(results, null, 2));
+                console.dir(results);
             }
             phantom.exit();
         }
@@ -122,3 +107,4 @@ addresses.forEach(function(address) {
     };
 
 });
+

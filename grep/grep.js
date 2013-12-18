@@ -24,20 +24,15 @@
  *
  ***********************************************************/
 
+var util      = require('../common/util');
 var webpage   = require('webpage');
 var system    = require('system');
-var fs        = require('fs');
 var finished  = 0;
-var addresses = [];
 var strings   = [];
 
 function usage() {
     console.log('Usage: grep.js <URL(s)>|<URL(s) file> <STRING(s)|STRING(s) file>] [--json]');
     phantom.exit();
-}
-
-function trim(str) {
-    return str.replace(/^\s+/,'').replace(/\s+$/,'');
 }
 
 // remove unimportant args
@@ -56,31 +51,11 @@ if (args.length !== 2) {
     usage();
 }
 
-function parsePaths(str) {
-    var result = [];
-    if (!str) return result;
-
-    if (fs.exists(str)) {
-        fs.read(str)
-            .split('\n')
-            .forEach(function(line) {
-                if (line !== '') {
-                    result.push(line);
-                }
-            });
-    } else {
-        str.split(',').forEach(function(item) {
-            result.push(trim(item));
-        });
-    }
-    return result;
-}
-
 // parse urls
-addresses = addresses.concat(parsePaths(args[0]));
+var addresses = util.parsePaths(args[0]);
 
 // parse strings
-strings = strings.concat(parsePaths(args[1]));
+strings = strings.concat(util.parsePaths(args[1]));
 
 if (!addresses || addresses.length === 0) {
     usage();
@@ -134,8 +109,11 @@ addresses.forEach(function(address) {
                 console.log(' ');
             }
 
-            finished++;
         }
+
+        (page.close||page.release)();
+        finished++;
+
         if (finished === addresses.length) {
             if (json) {
                 console.dir(results);
@@ -145,8 +123,4 @@ addresses.forEach(function(address) {
     });
 
 });
-
-console.dir = function dir(obj) {
-    console.log(JSON.stringify(obj, null, 2));
-}
 

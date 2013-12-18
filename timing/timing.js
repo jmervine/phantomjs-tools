@@ -21,11 +21,10 @@
  *
  ***********************************************************/
 
+var util      = require('../common/util');
 var webpage   = require('webpage');
 var system    = require('system');
-var fs        = require('fs');
 var finished  = 0;
-var addresses = [];
 
 /***********************************************************
  * Add any domains you wish to exclude to this array.
@@ -43,10 +42,6 @@ if (system.args.length === 1) {
     usage();
 }
 
-function trim(str) {
-    return str.replace(/^\s+/,'').replace(/\s+$/,'');
-}
-
 // remove unimportant args
 var jsonIndex = system.args.indexOf('--json');
 var json = (jsonIndex !== -1);
@@ -59,19 +54,7 @@ system.args.forEach(function(arg) {
     i++;
 });
 
-if (fs.exists(system.args[1])) {
-    fs.read(system.args[1])
-        .split('\n')
-        .forEach(function(line) {
-            if (line !== '') {
-                addresses.push(line);
-            }
-        });
-} else {
-    system.args[1].split(',').forEach(function(item) {
-        addresses.push(trim(item));
-    });
-}
+var addresses = util.parsePaths(urls);
 
 if (!addresses || addresses.length === 0) {
     usage();
@@ -99,11 +82,14 @@ addresses.forEach(function(address) {
                 console.log('> took ' + t + ' msec');
                 console.log(' ');
             }
-            finished++;
         }
+
+        (page.close||page.release)();
+        finished++;
+
         if (finished === addresses.length) {
             if (json) {
-                console.log(JSON.stringify(results, null, 2));
+                console.dir(results);
             }
             phantom.exit();
         }

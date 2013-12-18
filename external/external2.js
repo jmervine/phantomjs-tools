@@ -27,11 +27,10 @@
  *
  ***********************************************************/
 
+var util      = require('../common/util');
 var webpage   = require('webpage');
 var system    = require('system');
-var fs        = require('fs');
 var finished  = 0;
-var addresses = [];
 
 /***********************************************************
  * Add any domains you wish to exclude to this array.
@@ -53,10 +52,6 @@ if (system.args.length === 1) {
     usage();
 }
 
-function trim(str) {
-    return str.replace(/^\s+/,'').replace(/\s+$/,'');
-}
-
 // remove unimportant args
 var fullDomain = (system.args.indexOf('--full') !== -1);
 var jsonIndex = system.args.indexOf('--json');
@@ -71,58 +66,21 @@ system.args.forEach(function(arg) {
     i++;
 });
 
-function parsePaths(str) {
-    var result = [];
-    if (!str) return result;
-
-    if (fs.exists(str)) {
-        fs.read(str)
-            .split('\n')
-            .forEach(function(line) {
-                if (line !== '') {
-                    result.push(line);
-                }
-            });
-    } else {
-        str.split(',').forEach(function(item) {
-            result.push(trim(item));
-        });
-    }
-    return result;
-}
-
 // parse urls
-addresses = addresses.concat(parsePaths(args[0]));
+var addresses = util.parsePaths(args[0]);
 
 // parse excludes
-local_domains = local_domains.concat(parsePaths(args[1]));
+local_domains = local_domains.concat(util.parsePaths(args[1]));
 
 if (!addresses || addresses.length === 0) {
     usage();
-}
-
-function isLocal(path) {
-    var matched = false;
-    local_domains.forEach(function(domain) {
-        if (path.match('^https?://[^/]*'+domain) || path.match('^//[^/]*'+domain)) {
-            matched = true;
-        }
-    });
-    return matched;
-}
-
-function domain(url) {
-    if (fullDomain) {
-        return url;
-    }
-    return url.match("^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)")[1];
 }
 
 function flattenAndTallySuccesses(reqs) {
     var ret = [];
     reqs.forEach(function(req) {
         if (req.responded) {
-            url = domain(req.url);
+            url = util.domain(req.url);
             var exists = false;
             var index = 0;
             ret.forEach(function(u) {
@@ -133,7 +91,7 @@ function flattenAndTallySuccesses(reqs) {
                 index++;
             });
             if (!exists) {
-                ret.push({ referer: domain(req.referer), url: url, count: 1 });
+                ret.push({ referer: util.domain(req.referer), url: url, count: 1 });
             }
         }
     });
@@ -155,7 +113,7 @@ function flattenAndTallyFailures(reqs) {
                 index++;
             });
             if (!exists) {
-                ret.push({ referer: domain(req.referer), url: url, count: 1 });
+                ret.push({ referer: util.domain(req.referer), url: url, count: 1 });
             }
         }
     });
@@ -165,7 +123,7 @@ function flattenAndTallyFailures(reqs) {
 var results = [];
 
 addresses.forEach(function(address) {
-    local_domains.push(domain(address));
+    local_domains.push(address);
 
     var t = Date.now();
     var page = webpage.create();
@@ -236,6 +194,8 @@ addresses.forEach(function(address) {
                 }
             }
         }
+
+        (page.close||page.release)();
         finished++;
 
         if (finished === addresses.length) {
@@ -247,7 +207,7 @@ addresses.forEach(function(address) {
     });
 
     page.onResourceRequested = function(data, request) {
-        if (!isLocal(data.url)) {
+        if (!util.isLocal(data.url)) {
             var referer = data.headers.filter(function(header) {
                 if (header.name === "Referer") {
                     return header;
@@ -258,7 +218,7 @@ addresses.forEach(function(address) {
     };
 
     page.onResourceReceived = function(response) {
-        if (!isLocal(response.url)) {
+        if (!util.isLocal(response.url)) {
             var index = 0;
             requests.forEach(function(request) {
                 if (request.url === response.url && request.id === response.id) {
@@ -269,8 +229,4 @@ addresses.forEach(function(address) {
         }
     };
 });
-
-console.dir = function dir(obj) {
-    console.log(JSON.stringify(obj, null, 2));
-}
 
