@@ -121,9 +121,25 @@ function flattenAndTallyFailures(reqs) {
 }
 
 var results = [];
+var limit   = 15;
+var running = 1;
 
-addresses.forEach(function(address) {
-    local_domains.push(address);
+function launcher() {
+    running--;
+    while(running < limit && addresses.length > 0){
+        running++;
+        collectData(addresses.shift());
+    }
+    if(running < 1 && addresses.length < 1){
+        if (json) {
+            console.dir(results);
+        }
+        phantom.exit();
+    }
+}
+
+function collectData(address){
+    local_domains.push(util.domain(address));
 
     var t = Date.now();
     var page = webpage.create();
@@ -135,85 +151,29 @@ addresses.forEach(function(address) {
         } else {
             t = Date.now() - t;
 
-            var successes = flattenAndTallySuccesses(requests)
-                            .sort(function(a,b) {
-                                if (a.count < b.count) {
-                                    return 1;
-                                }
-                                if (a.count > b.count) {
-                                    return -1;
-                                }
-                                return 0;
-                            });
-
-            var failures = flattenAndTallyFailures(requests)
-                            .sort(function(a,b) {
-                                if (a.count < b.count) {
-                                    return 1;
-                                }
-                                if (a.count > b.count) {
-                                    return -1;
-                                }
-                                return 0;
-                            });
+            var successes = flattenAndTallySuccesses(requests).sort(util.reqSort);
+            var failures  = flattenAndTallyFailures(requests).sort(util.reqSort);
 
             if (json) {
-                var reqs = [];
-
-                successes.forEach(function(item) {
-                    item.successful = true;
-                    reqs.push(item);
-                });
-
-                failures.forEach(function(item) {
-                    item.successful = false;
-                    reqs.push(item);
-                });
-
-                results.push({
-                    address: address,
-                    complete: t,
-                    requests: reqs
+                util.doJSON(address, t, successes, failures, function(res) {
+                    results.push(res);
                 });
             } else {
-                console.log('Regarding: ' + address);
-                console.log('> took ' + t + ' msec');
-                console.log(' ');
-                console.log('External Requests:');
-
-                successes.forEach(function(url) {
-                    console.log('* ' + url.referer + '\n  -> ' + url.url + ' [' + url.count + ']');
-                });
-                console.log(' ');
-                if (failures.length > 0) {
-                    console.log('Failed Requests:');
-                    failures.forEach(function(url) {
+                util.doTEXT(address, t, successes, failures, function(res) {
+                    res.forEach(function(url) {
                         console.log('* ' + url.referer + '\n  -> ' + url.url + ' [' + url.count + ']');
                     });
-                    console.log(' ');
-                }
+                });
             }
         }
 
         (page.close||page.release)();
-        finished++;
-
-        if (finished === addresses.length) {
-            if (json) {
-                console.dir(results);
-            }
-            phantom.exit();
-        }
+        launcher();
     });
 
     page.onResourceRequested = function(data, request) {
         if (!util.isLocal(data.url)) {
-            var referer = data.headers.filter(function(header) {
-                if (header.name === "Referer") {
-                    return header;
-                }
-            })[0].value;
-            requests.push({ referer: referer, url: data.url, id: data.id });
+            requests.push({ referer: util.referer(data.headers), url: data.url, id: data.id });
         }
     };
 
@@ -228,5 +188,6 @@ addresses.forEach(function(address) {
             });
         }
     };
-});
+}
 
+launcher();
