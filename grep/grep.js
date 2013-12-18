@@ -56,36 +56,31 @@ if (args.length !== 2) {
     usage();
 }
 
-// parse urls
-if (fs.exists(args[0])) {
-    fs.read(args[0])
-        .split('\n')
-        .forEach(function(line) {
-            if (line !== '') {
-                addresses.push(line);
-            }
-        });
-} else {
-    args[0].split(',').forEach(function(item) {
-        addresses.push(trim(item));
-    });
-}
+function parsePaths(str) {
+    var result = [];
+    if (!str) return result;
 
-if (args[1]) {
-    if (fs.exists(args[1])) {
-        fs.read(args[1])
+    if (fs.exists(str)) {
+        fs.read(str)
             .split('\n')
             .forEach(function(line) {
                 if (line !== '') {
-                    strings.push(line);
+                    result.push(line);
                 }
             });
     } else {
-        args[1].split(',').forEach(function(item) {
-            strings.push(trim(item));
+        str.split(',').forEach(function(item) {
+            result.push(trim(item));
         });
     }
+    return result;
 }
+
+// parse urls
+addresses = addresses.concat(parsePaths(args[0]));
+
+// parse strings
+strings = strings.concat(parsePaths(args[1]));
 
 if (!addresses || addresses.length === 0) {
     usage();
@@ -112,10 +107,9 @@ addresses.forEach(function(address) {
                 var count = 0;
                 try {
                     count = Object.keys(body.match(new RegExp(str, 'ig'))).length;
-                } catch(e) {}
-
-                if (count > 0) {
                     found.push({ string: str, count: count });
+                } catch(e) {
+                    found.push({ string: str, count: 0 });
                 }
             });
 
@@ -144,10 +138,15 @@ addresses.forEach(function(address) {
         }
         if (finished === addresses.length) {
             if (json) {
-                console.log(JSON.stringify(results, null, 2));
+                console.dir(results);
             }
             phantom.exit();
         }
     });
 
 });
+
+console.dir = function dir(obj) {
+    console.log(JSON.stringify(obj, null, 2));
+}
+

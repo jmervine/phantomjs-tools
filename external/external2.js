@@ -6,16 +6,21 @@
  *
  *  Run with:
  *
- *  $ phantomjs ./external.js ./urls.txt [./excluded.txt]
+ *  $ phantomjs ./external2.js ./urls.txt [./excluded.txt]
  *
  *  or
  *
- *  $ phantomjs ./external.js \
+ *  $ phantomjs ./external2.js \
  *     "http://foo.com, http://foo.com/bar" \
  *     "exclude1.example.com, exclude2.example.com"
  *
+ *  External 2 adds referer support.
+ *
  *  '--json' returns JSON output for parsing with Phapper
  *  (http://github.com/jmervine/phapper).
+ *
+ *  '--full' returns full request/response url and referer
+ *  as oppose to flattening them to just the domain.
  *
  *  Note: As a bonus, I left the page timing as well from
  *  the example script I started this from.
@@ -40,7 +45,7 @@ var local_domains = [
 ];
 
 function usage() {
-    console.log('Usage: external.js <URL(s)>|<URL(s) file> [<EXCLUDE(s)|EXCLUDE(s) file>] [--json]');
+    console.log('Usage: external2.js <URL(s)>|<URL(s) file> [<EXCLUDE(s)|EXCLUDE(s) file>] [--json] [--full]');
     phantom.exit();
 }
 
@@ -53,10 +58,12 @@ function trim(str) {
 }
 
 // remove unimportant args
+var fullDomain = (system.args.indexOf('--full') !== -1);
 var jsonIndex = system.args.indexOf('--json');
 var json = (jsonIndex !== -1);
 var args = [];
 var i = 0;
+
 system.args.forEach(function(arg) {
     if (i !== 0 && i !== jsonIndex) {
         args.push(arg);
@@ -105,6 +112,9 @@ function isLocal(path) {
 }
 
 function domain(url) {
+    if (fullDomain) {
+        return url;
+    }
     return url.match("^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)")[1];
 }
 
@@ -123,7 +133,7 @@ function flattenAndTallySuccesses(reqs) {
                 index++;
             });
             if (!exists) {
-                ret.push({ url: url, count: 1 });
+                ret.push({ referer: domain(req.referer), url: url, count: 1 });
             }
         }
     });
@@ -134,7 +144,7 @@ function flattenAndTallyFailures(reqs) {
     var ret = [];
     reqs.forEach(function(req) {
         if (!req.responded) {
-            url = domain(req.url);
+            url = req.url;
             var exists = false;
             var index = 0;
             ret.forEach(function(u) {
@@ -145,7 +155,7 @@ function flattenAndTallyFailures(reqs) {
                 index++;
             });
             if (!exists) {
-                ret.push({ url: url, count: 1 });
+                ret.push({ referer: domain(req.referer), url: url, count: 1 });
             }
         }
     });
@@ -155,7 +165,7 @@ function flattenAndTallyFailures(reqs) {
 var results = [];
 
 addresses.forEach(function(address) {
-    local_domains.push(address);
+    local_domains.push(domain(address));
 
     var t = Date.now();
     var page = webpage.create();
@@ -214,13 +224,13 @@ addresses.forEach(function(address) {
                 console.log('External Requests:');
 
                 successes.forEach(function(url) {
-                    console.log(' - ' + url.url + ' [' + url.count + ']');
+                    console.log('* ' + url.referer + '\n  -> ' + url.url + ' [' + url.count + ']');
                 });
                 console.log(' ');
                 if (failures.length > 0) {
                     console.log('Failed Requests:');
                     failures.forEach(function(url) {
-                        console.log(' - ' + url.url + ' [' + url.count + ']');
+                        console.log('* ' + url.referer + '\n  -> ' + url.url + ' [' + url.count + ']');
                     });
                     console.log(' ');
                 }
@@ -238,7 +248,12 @@ addresses.forEach(function(address) {
 
     page.onResourceRequested = function(data, request) {
         if (!isLocal(data.url)) {
-            requests.push({ url: data.url, id: data.id });
+            var referer = data.headers.filter(function(header) {
+                if (header.name === "Referer") {
+                    return header;
+                }
+            })[0].value;
+            requests.push({ referer: referer, url: data.url, id: data.id });
         }
     };
 
