@@ -174,8 +174,11 @@ function fin(){
 function launcher(){
     running--;
     while(running < limit && addresses.length > 0){
-        collectData(addresses.shift());
         running++;
+        collectData(addresses.shift());
+    }
+    if(running < 1 && addresses.length < 1){
+        fin();
     }
 }
 function collectData(address){
@@ -250,12 +253,8 @@ function collectData(address){
                 }
             }
         }
-        finished++;
-
-        if (finished === addresses.length) {
-        }else{
-          launcher();
-        }
+        (page.close||page.release)();
+        launcher();
     });
 
     page.onResourceRequested = function(data, request) {
@@ -285,7 +284,4 @@ function collectData(address){
 console.dir = function dir(obj) {
     console.log(JSON.stringify(obj, null, 2));
 }
-function asyc(arg, callback){
-}
-
-
+launcher();
