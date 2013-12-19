@@ -13,6 +13,44 @@ console.dir = function dir(obj) {
     console.log(JSON.stringify(obj, null, 2));
 };
 
+Array.prototype.copyArgs = function copyArgs() {
+    var n = new Array();
+    this.forEach(function(e) {
+        n.push(e);
+    });
+    n.shift(); // remove file name
+    return n;
+};
+
+// usage:
+//
+// var arg = system.args.copy(); // see above
+// var useFULL = arg.getArgs(['--full', '-f'], false); // false
+// var useJSON = arg.getArgs(['--json', '-j'], false); // true
+// var gotNAME = arg.getArgs(['--name', '-n'], true);  // foo
+Array.prototype.getArg = function getArg(flags, hasValue) {
+    for (var i = 0; i < flags.length; i++) {
+        var pos = this.indexOf(flags[i]);
+        if (pos !== -1) {
+            if (hasValue) {
+                try {
+                    var ret = this[pos+1];
+                    console.log('ret: ' + ret);
+                    this.splice(pos,2);
+                    return ret;
+                } catch (e) {
+                    console.trace(e);
+                    return false;
+                }
+            }
+            var len = this.length-1;
+            this.splice(pos, 1);
+            return true;
+        }
+    }
+    return false;
+};
+
 function trim(str) {
     return str.replace(/^\s+/,'').replace(/\s+$/,'');
 }
@@ -39,9 +77,9 @@ function parsePaths(str) {
     return result;
 }
 
-function isLocal(path) {
+function isLocal(excludes, path) {
     var matched = false;
-    local_domains.forEach(function(domain) {
+    excludes.forEach(function(domain) {
         if (path.match('^https?://[^/]*'+domain) || path.match('^//[^/]*'+domain)) {
             matched = true;
         }
@@ -115,21 +153,6 @@ function referer(headers) {
         }
     })[0].value;
 }
-
-//function open(address) {
-    //var t = Date.now();
-    //var page = webpage.create();
-    //var requests = [];
-
-    //page.open(address, function(stats) {
-        //if (status !== 'success') {
-            //console.log('FAIL to load the address');
-        //} else {
-            //t = Date.now() - t;
-        //}
-    //});
-
-//}
 
 module.exports = {
     trim: trim,

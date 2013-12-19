@@ -24,38 +24,26 @@
  *
  ***********************************************************/
 
-var util      = require('../common/util');
 var webpage   = require('webpage');
 var system    = require('system');
-var finished  = 0;
-var strings   = [];
+var util      = require('../common/util');
+var args      = system.args.copyArgs();
 
 function usage() {
     console.log('Usage: grep.js <URL(s)>|<URL(s) file> <STRING(s)|STRING(s) file>] [--json]');
     phantom.exit();
 }
 
-// remove unimportant args
-var jsonIndex = system.args.indexOf('--json');
-var json = (jsonIndex !== -1);
-var args = [];
-var i = 0;
-system.args.forEach(function(arg) {
-    if (i !== 0 && i !== jsonIndex) {
-        args.push(arg);
-    }
-    i++;
-});
+var json      = args.getArg(['--json', '-j'], false);
+var addresses = util.parsePaths(args.shift());
+var strings   = util.parsePaths(args.shift());
+var finished  = 0;
 
-if (args.length !== 2) {
+if (addresses.length === 0) {
     usage();
 }
 
-// parse urls
-var addresses = util.parsePaths(args[0]);
-
 // parse strings
-strings = strings.concat(util.parsePaths(args[1]));
 
 if (!addresses || addresses.length === 0) {
     usage();

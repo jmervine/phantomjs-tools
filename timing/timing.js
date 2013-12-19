@@ -21,10 +21,10 @@
  *
  ***********************************************************/
 
-var util      = require('../common/util');
 var webpage   = require('webpage');
 var system    = require('system');
-var finished  = 0;
+var util      = require('../common/util');
+var args      = system.args.copyArgs();
 
 /***********************************************************
  * Add any domains you wish to exclude to this array.
@@ -38,31 +38,37 @@ function usage() {
     phantom.exit();
 }
 
-if (system.args.length === 1) {
+if (args.length === 0) {
     usage();
 }
 
-// remove unimportant args
-var jsonIndex = system.args.indexOf('--json');
-var json = (jsonIndex !== -1);
-var urls;
-var i = 0;
-system.args.forEach(function(arg) {
-    if (i !== 0 && i !== jsonIndex) {
-        urls = arg;
+var json      = args.getArg(['--json', '-j'], false);
+var addresses = util.parsePaths(args.shift());
+var finished  = 0;
+
+if (addresses.length === 0) {
+    usage();
+}
+
+var results = [];
+var limit   = 15;
+var running = 1;
+
+function launcher(){
+    running--;
+    while(running < limit && addresses.length > 0){
+        running++;
+        collectData(addresses.shift());
     }
-    i++;
-});
-
-var addresses = util.parsePaths(urls);
-
-if (!addresses || addresses.length === 0) {
-    usage();
+    if(running < 1 && addresses.length < 1){
+        if (json) {
+            console.dir(results);
+        }
+        phantom.exit();
+    }
 }
 
-var results = []; // if --json
-
-addresses.forEach(function(address) {
+function collectData(address) {
     var t = Date.now();
     var page = webpage.create();
 
@@ -85,14 +91,10 @@ addresses.forEach(function(address) {
         }
 
         (page.close||page.release)();
-        finished++;
-
-        if (finished === addresses.length) {
-            if (json) {
-                console.dir(results);
-            }
-            phantom.exit();
-        }
+        launcher();
+        return;
     });
-});
+}
+
+launcher();
 

@@ -22,50 +22,26 @@
  *
  ***********************************************************/
 
-var util      = require('../common/util');
 var webpage   = require('webpage');
 var system    = require('system');
-var finished  = 0;
-
-/***********************************************************
- * Add any domains you wish to exclude to this array.
- *
- * Domains added to this Array will be excluded in addition
- * to an domains passed through the second argument.
- ***********************************************************/
-var local_domains = [
-    // domains to be excluded, e.g.:
-    // "www.example.com"
-];
+var util      = require('../common/util');
+var args      = system.args.copyArgs();
 
 function usage() {
     console.log('Usage: external.js <URL(s)>|<URL(s) file> [<EXCLUDE(s)|EXCLUDE(s) file>] [--json]');
     phantom.exit();
 }
 
-if (system.args.length === 1) {
+if (args.length === 0) {
     usage();
 }
 
-// remove unimportant args
-var jsonIndex = system.args.indexOf('--json');
-var json = (jsonIndex !== -1);
-var args = [];
-var i = 0;
-system.args.forEach(function(arg) {
-    if (i !== 0 && i !== jsonIndex) {
-        args.push(arg);
-    }
-    i++;
-});
+var json      = args.getArg(['--json', '-j'], false);
+var addresses = util.parsePaths(args.shift());
+var excludes  = util.parsePaths(args.shift());
+var finished  = 0;
 
-// parse urls
-var addresses = util.parsePaths(args[0]);
-
-// parse excludes
-local_domains = local_domains.concat(util.parsePaths(args[1]));
-
-if (!addresses || addresses.length === 0) {
+if (addresses.length === 0) {
     usage();
 }
 
@@ -132,7 +108,7 @@ function launcher(){
 }
 
 function collectData(address) {
-    local_domains.push(util.domain(address));
+    excludes.push(util.domain(address));
 
     var t = Date.now();
     var page = webpage.create();
@@ -165,13 +141,13 @@ function collectData(address) {
     });
 
     page.onResourceRequested = function(data, request) {
-        if (!util.isLocal(data.url)) {
+        if (!util.isLocal(excludes, data.url)) {
             requests.push({ url: data.url, id: data.id });
         }
     };
 
     page.onResourceReceived = function(response) {
-        if (!util.isLocal(response.url)) {
+        if (!util.isLocal(excludes, response.url)) {
             var index = 0;
             requests.forEach(function(request) {
                 if (request.url === response.url && request.id === response.id) {
