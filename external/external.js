@@ -22,10 +22,10 @@
  *
  ***********************************************************/
 
-var webpage   = require('webpage');
-var system    = require('system');
-var util      = require('../common/util');
-var args      = system.args.copyArgs();
+var webpage = require('webpage');
+var system  = require('system');
+var util    = require('../common/util');
+var args    = system.args.copyArgs();
 
 function usage() {
     console.log('Usage: external.js <URL(s)>|<URL(s) file> [<EXCLUDE(s)|EXCLUDE(s) file>] [--json]');
