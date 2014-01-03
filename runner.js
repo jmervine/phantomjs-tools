@@ -14,6 +14,8 @@ program
   .option('-s , --script [string]' , 'script to be run')
   .option('-r , --runs   [number]' , 'number of runs [1]', parseInt, 1)
   .option('-j , --json'            , 'output in JSON format')
+  .option('--parallel'             , 'run phantom calls in parallel')
+  .option('--series'               , 'run phantom calls in a series')
   .option('-m , --median'          , 'return median value');
 
 program.on('--help', function() {
@@ -57,8 +59,10 @@ if (args.indexOf('--json') === -1) {
 
 var runner  = new Phapper(script, args);
 var runs    = [];
+var itteration = 0;
 for (var i=0; i < program.runs; i++) {
     runs.push( function(callback) {
+        console.log('finishing itteration: ', itteration++);
         runner.run(function(json, stdio) {
             if (stdio.error) {
                 callback(stdio.error, null);
@@ -71,54 +75,60 @@ for (var i=0; i < program.runs; i++) {
     });
 }
 
-async.parallel(runs,
-    function(err, results) {
-        if (err) {
-            console.trace(err);
-            process.exit(1);
-        }
-        var sets = {};
-        results.forEach(function(res) {
-            res.forEach(function(r) {
-                var address = r.address;
-                delete r.address;
+function asyncCallback(err, results) {
+    if (err) {
+        console.trace(err);
+        process.exit(1);
+    }
+    var sets = {};
+    results.forEach(function(res) {
+        res.forEach(function(r) {
+            var address = r.address;
+            delete r.address;
 
-                sets[address] = sets[address] || {};
-                Object.keys(r).forEach(function(key) {
-                    sets[address][key] = sets[address][key] || [];
-                    sets[address][key].push(r[key]);
-                });
+            sets[address] = sets[address] || {};
+            Object.keys(r).forEach(function(key) {
+                sets[address][key] = sets[address][key] || [];
+                sets[address][key].push(r[key]);
             });
         });
+    });
 
-        if (program.json) {
-            Object.keys(sets).forEach(function(set) {
-                Object.keys(sets[set]).forEach(function(metric) {
-                    var result = sets[set][metric];
-                    if (Array.isArray(result) && typeof result[0] === 'number') {
-                        result = median(result);
-                    }
-                    sets[set][metric] = result;
-                });
+    if (program.json) {
+        Object.keys(sets).forEach(function(set) {
+            Object.keys(sets[set]).forEach(function(metric) {
+                var result = sets[set][metric];
+                if (Array.isArray(result) && typeof result[0] === 'number') {
+                    result = median(result);
+                }
+                sets[set][metric] = result;
             });
-            console.log(JSON.stringify(sets, null, 2));
-        } else {
-            Object.keys(sets).forEach(function(set) {
-                console.log('Regarding %s:', set);
-                Object.keys(sets[set]).forEach(function(metric) {
-                    var result = median(sets[set][metric]);
-                    if (Array.isArray(result)) {
-                        console.log('\n* %s:', metric);
-                        crawl(result);
-                    } else {
-                        console.log('* %s: %s', metric, result);
-                    }
-                });
-                console.log('');
+        });
+        console.log(JSON.stringify(sets, null, 2));
+    } else {
+        Object.keys(sets).forEach(function(set) {
+            console.log('Regarding %s:', set);
+            Object.keys(sets[set]).forEach(function(metric) {
+                var result = median(sets[set][metric]);
+                if (Array.isArray(result)) {
+                    console.log('\n* %s:', metric);
+                    crawl(result);
+                } else {
+                    console.log('* %s: %s', metric, result);
+                }
             });
-        }
+            console.log('');
+        });
     }
-);
+}
+
+if (program.series && !program.parallel) {
+    async.series(runs, asyncCallback);
+} else if (program.parallel && !program.series) {
+    async.parallel(runs, asyncCallback);
+} else {
+    async.parallelLimit(runs, require('os').cpus().length, asyncCallback);
+}
 
 // functions
 function median(values) {
