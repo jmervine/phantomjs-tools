@@ -14,9 +14,10 @@ program
   .option('-s , --script [string]' , 'script to be run')
   .option('-r , --runs   [number]' , 'number of runs [1]', parseInt, 1)
   .option('-j , --json'            , 'output in JSON format')
-  .option('--parallel'             , 'run phantom calls in parallel')
-  .option('--series'               , 'run phantom calls in a series')
-  .option('-m , --median'          , 'return median value');
+  .option('-m , --median'          , 'return median value')
+  .option('--parallel'             , 'force runs to be parallel')
+  .option('--series'               , 'force runs to be serialized')
+  .option('--limit [number]'       , 'overide using the cpu count as the limit for parallel runs', parseInt);
 
 program.on('--help', function() {
     console.log('  Examples:');
@@ -62,7 +63,6 @@ var runs    = [];
 var itteration = 0;
 for (var i=0; i < program.runs; i++) {
     runs.push( function(callback) {
-        console.log('finishing itteration: ', itteration++);
         runner.run(function(json, stdio) {
             if (stdio.error) {
                 callback(stdio.error, null);
@@ -122,12 +122,14 @@ function asyncCallback(err, results) {
     }
 }
 
-if (program.series && !program.parallel) {
+if (program.limit) {
+    async.parallelLimit(runs, program.limit, asyncCallback);
+} else if (program.series && !program.parallel) {
     async.series(runs, asyncCallback);
 } else if (program.parallel && !program.series) {
     async.parallel(runs, asyncCallback);
 } else {
-    async.parallelLimit(runs, require('os').cpus().length, asyncCallback);
+    async.parallelLimit(runs, (require('os').cpus().length+1), asyncCallback);
 }
 
 // functions
