@@ -1,0 +1,29 @@
+// example cookie's configuration
+module.exports = function () {
+    return [
+
+      // first cookie
+      {
+          'name':     'Valid-Cookie-Name-One',   /* required property */
+          'value':    'Valid-Cookie-Value',      /* required property */
+          'domain':   'localhost',               /* required property */
+          'path':     '/foo',
+          'httponly': true,
+          'secure':   false,
+          'expires':  (new Date()).getTime() + (1000 * 60 * 60)   /* <-- expires in 1 hour */
+      },
+
+      // second cookie
+      {
+          'name':     'Valid-Cookie-Name-One',   /* required property */
+          'value':    'Valid-Cookie-Value',      /* required property */
+          'domain':   'localhost',               /* required property */
+          'path':     '/foo',
+          'httponly': true,
+          'secure':   false,
+          'expires':  (new Date()).getTime() + (1000 * 60 * 60)   /* <-- expires in 1 hour */
+      },
+
+      // more cookies ...
+    ];
+};

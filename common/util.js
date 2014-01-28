@@ -55,6 +55,24 @@ function trim(str) {
     return str.replace(/^\s+/,'').replace(/\s+$/,'');
 }
 
+function loadCookies() {
+    var cookies;
+    try {
+        if (fs.exists(fs.absolute('./cookies.js'))) {
+            cookies = require(fs.absolute('./cookies.js'))();
+        } else {
+            return;
+        }
+
+        cookies.forEach(function eachCookie(cookie) {
+            phantom.addCookie(cookie);
+        });
+    } catch(e) {
+        console.trace(e);
+        phantom.exit(1);
+    }
+}
+
 function parsePaths(str) {
     var result = [];
     if (!str) {
@@ -162,6 +180,7 @@ module.exports = {
     doJSON: doJSON,
     doTEXT: doTEXT,
     reqSort: reqSort,
-    referer: referer
+    referer: referer,
+    loadCookies: loadCookies
 };
 

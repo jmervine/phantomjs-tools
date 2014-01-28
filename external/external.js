@@ -94,6 +94,7 @@ var limit   = 15;
 var running = 1;
 
 function launcher(){
+    util.loadCookies();
     running--;
     while(running < limit && addresses.length > 0){
         running++;

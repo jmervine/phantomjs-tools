@@ -51,6 +51,7 @@ if (!addresses || addresses.length === 0) {
 
 var results = []; // if --json
 
+util.loadCookies();
 addresses.forEach(function(address) {
     var t = Date.now();
     var page = webpage.create();
